@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FX Journal — Pro Trading Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
+</head>
+<body>
+
+<!-- ============================================================
+     SIDEBAR
+============================================================ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-icon">⬡</span>
+    <span class="logo-text">FX<span class="logo-accent">Journal</span></span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a href="#" class="nav-item active" data-section="dashboard">
+      <svg class="nav-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a href="#" class="nav-item" data-section="accounts">
+      <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Accounts
+    </a>
+    <a href="#" class="nav-item" data-section="trades">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+      Trades
+    </a>
+    <a href="#" class="nav-item" data-section="analytics">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 16l4-6 4 4 4-8"/></svg>
+      Analytics
+    </a>
+    <a href="#" class="nav-item" data-section="psychology">
+      <svg class="nav-icon" viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v4"/><path d="M21 3h-4"/><path d="M21 9V5a2 2 0 0 0-2-2"/><path d="M3 15v4a2 2 0 0 0 2 2h4"/><path d="M21 15v4a2 2 0 0 0-2 2h-4"/><circle cx="12" cy="12" r="3"/></svg>
+      Psychology
+    </a>
+    <a href="#" class="nav-item" data-section="settings">
+      <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.1 4.9A9.9 9.9 0 0 0 12 2a9.9 9.9 0 0 0-7.1 2.9"/><path d="M4.9 19.1A9.9 9.9 0 0 0 12 22a9.9 9.9 0 0 0 7.1-2.9"/><path d="M2 12a10 10 0 0 0 2.9 7.1"/><path d="M22 12a10 10 0 0 0-2.9-7.1"/></svg>
+      Settings
+    </a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="account-quick">
+      <div class="aq-dot" id="aqDot"></div>
+      <span id="aqAccName">No Account</span>
+    </div>
+    <div class="sidebar-version">v2.4.1</div>
+  </div>
+</aside>
+
+<!-- Sidebar mobile overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ============================================================
+     MAIN CONTENT
+============================================================ -->
+<main class="main-content" id="mainContent">
+
+  <!-- TOP NAVBAR -->
+  <header class="topbar">
+    <button class="menu-toggle" id="menuToggle">
+      <span></span><span></span><span></span>
+    </button>
+
+    <div class="topbar-left">
+      <div class="account-selector">
+        <label class="selector-label">Account</label>
+        <select id="accountSelect" class="account-select">
+          <option value="">— Select Account —</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="topbar-center">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="search-input" id="globalSearch" placeholder="Search trades, pairs..." />
+      </div>
+    </div>
+
+    <div class="topbar-right">
+      <div class="datetime-block" id="datetimeBlock"></div>
+      <button class="icon-btn notif-btn" title="Notifications">
+        <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <span class="notif-dot"></span>
+      </button>
+      <div class="user-avatar" title="Profile">T</div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       SECTION: DASHBOARD
+  ============================================================ -->
+  <section class="section active" id="section-dashboard">
+    <div class="section-header">
+      <h1 class="section-title">Dashboard</h1>
+      <div class="section-subtitle" id="dashSubtitle">Overview of all performance</div>
+    </div>
+
+    <!-- OVERVIEW CARDS -->
+    <div class="cards-grid" id="cardsGrid">
+      <div class="card stat-card" data-label="Balance">
+        <div class="card-icon balance-icon">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-label">Total Balance</div>
+          <div class="card-value" id="statBalance">—</div>
+          <div class="card-delta" id="statBalanceDelta"></div>
+        </div>
+      </div>
+
+      <div class="card stat-card" data-label="PnL">
+        <div class="card-icon pnl-icon">
+          <svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-label">Total PnL</div>
+          <div class="card-value" id="statPnl">—</div>
+          <div class="card-delta" id="statPnlDelta"></div>
+        </div>
+      </div>
+
+      <div class="card stat-card" data-label="WinRate">
+        <div class="card-icon win-icon">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-label">Win Rate</div>
+          <div class="card-value" id="statWinRate">—</div>
+          <div class="card-sub" id="statWinSub"></div>
+        </div>
+      </div>
+
+      <div class="card stat-card" data-label="RR">
+        <div class="card-icon rr-icon">
+          <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-label">Avg RR</div>
+          <div class="card-value" id="statRR">—</div>
+          <div class="card-sub">Risk : Reward</div>
+        </div>
+      </div>
+
+      <div class="card stat-card" data-label="Trades">
+        <div class="card-icon trades-icon">
+          <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-label">Total Trades</div>
+          <div class="card-value" id="statTrades">—</div>
+          <div class="card-sub" id="statTradesSub"></div>
+        </div>
+      </div>
+
+      <div class="card stat-card" data-label="PF">
+        <div class="card-icon pf-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-label">Profit Factor</div>
+          <div class="card-value" id="statPF">—</div>
+          <div class="card-sub">Gross Profit / Loss</div>
+        </div>
+      </div>
+
+      <div class="card stat-card" data-label="DD">
+        <div class="card-icon dd-icon">
+          <svg viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-label">Max Drawdown</div>
+          <div class="card-value red-value" id="statDD">—</div>
+          <div class="card-sub">From peak equity</div>
+        </div>
+      </div>
+
+      <div class="card stat-card" data-label="Best">
+        <div class="card-icon best-icon">
+          <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        </div>
+        <div class="card-body">
+          <div class="card-label">Best Trade</div>
+          <div class="card-value green-value" id="statBest">—</div>
+          <div class="card-sub" id="statBestPair"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EQUITY CURVE -->
+    <div class="chart-section">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <h3 class="chart-title">Equity Curve</h3>
+            <p class="chart-subtitle">Cumulative PnL over time</p>
+          </div>
+          <div class="chart-controls">
+            <button class="chart-btn active" data-period="all">All</button>
+            <button class="chart-btn" data-period="month">1M</button>
+            <button class="chart-btn" data-period="week">1W</button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="equityChart"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card mini-chart-card">
+        <div class="chart-header">
+          <h3 class="chart-title">Win / Loss</h3>
+          <p class="chart-subtitle">Distribution</p>
+        </div>
+        <div class="chart-wrap donut-wrap">
+          <canvas id="winLossChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION: ACCOUNTS
+  ============================================================ -->
+  <section class="section" id="section-accounts">
+    <div class="section-header">
+      <h1 class="section-title">Accounts</h1>
+      <button class="btn-primary" id="openAddAccountModal">+ New Account</button>
+    </div>
+    <div class="accounts-grid" id="accountsGrid">
+      <!-- populated by JS -->
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION: TRADES
+  ============================================================ -->
+  <section class="section" id="section-trades">
+    <div class="section-header">
+      <h1 class="section-title">Trade Log</h1>
+      <div class="header-actions">
+        <div class="filter-wrap">
+          <input type="text" class="filter-input" id="tradeSearch" placeholder="Filter pair, strategy..." />
+        </div>
+        <button class="btn-primary" id="openAddTradeModal">+ Add Trade</button>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-wrap">
+        <table class="trades-table" id="tradesTable">
+          <thead>
+            <tr>
+              <th class="sortable" data-col="date">Date <span class="sort-icon">↕</span></th>
+              <th class="sortable" data-col="pair">Pair <span class="sort-icon">↕</span></th>
+              <th>Dir</th>
+              <th class="sortable" data-col="entry">Entry <span class="sort-icon">↕</span></th>
+              <th>Exit</th>
+              <th>SL</th>
+              <th>TP</th>
+              <th>Lots</th>
+              <th class="sortable" data-col="pnl">PnL <span class="sort-icon">↕</span></th>
+              <th>RR</th>
+              <th>Strategy</th>
+              <th>Emotion</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tradesBody">
+            <!-- populated by JS -->
+          </tbody>
+        </table>
+      </div>
+      <div class="table-empty" id="tradesEmpty" style="display:none">
+        <svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>
+        <p>No trades yet. Add your first trade.</p>
+      </div>
+      <div class="table-footer">
+        <span id="tradeCount">0 trades</span>
+        <button class="btn-secondary" onclick="exportCSV()" style="font-size:0.78rem;padding:6px 14px;">⬇ Export CSV</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION: ANALYTICS
+  ============================================================ -->
+  <section class="section" id="section-analytics">
+    <div class="section-header">
+      <h1 class="section-title">Analytics</h1>
+      <div class="section-subtitle">Deep performance breakdown</div>
+    </div>
+
+    <div class="analytics-grid">
+      <div class="chart-card">
+        <div class="chart-header"><h3 class="chart-title">Monthly PnL</h3></div>
+        <div class="chart-wrap"><canvas id="monthlyChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3 class="chart-title">Pair Performance</h3></div>
+        <div class="chart-wrap"><canvas id="pairChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3 class="chart-title">Session Performance</h3></div>
+        <div class="chart-wrap"><canvas id="sessionChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header"><h3 class="chart-title">RR Distribution</h3></div>
+        <div class="chart-wrap"><canvas id="rrChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION: PSYCHOLOGY
+  ============================================================ -->
+  <section class="section" id="section-psychology">
+    <div class="section-header">
+      <h1 class="section-title">Psychology</h1>
+      <div class="section-subtitle">Emotion tracking & mental performance</div>
+    </div>
+
+    <div class="psych-grid">
+      <div class="chart-card psych-chart-card">
+        <div class="chart-header"><h3 class="chart-title">Emotion Distribution</h3></div>
+        <div class="chart-wrap donut-wrap"><canvas id="emotionChart"></canvas></div>
+      </div>
+      <div class="psych-stats-card">
+        <h3 class="chart-title">Emotion Performance</h3>
+        <div class="emotion-stats" id="emotionStats"></div>
+      </div>
+      <div class="psych-tips-card">
+        <h3 class="chart-title">Mindset Score</h3>
+        <div class="mindset-score" id="mindsetScore"></div>
+        <div class="psych-tips" id="psychTips"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================
+       SECTION: SETTINGS
+  ============================================================ -->
+  <section class="section" id="section-settings">
+    <div class="section-header">
+      <h1 class="section-title">Settings</h1>
+    </div>
+    <div class="settings-grid">
+      <div class="settings-card">
+        <h3 class="settings-section-title">Profile</h3>
+        <div class="form-group">
+          <label class="form-label">Trader Name</label>
+          <input type="text" class="form-input" value="Trader" id="settingsName" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default Risk %</label>
+          <input type="number" class="form-input" value="1" id="settingsRisk" />
+        </div>
+        <button class="btn-primary" onclick="saveSettings()">Save Settings</button>
+      </div>
+      <div class="settings-card">
+        <h3 class="settings-section-title">Strategy Tags</h3>
+        <div class="form-group">
+          <label class="form-label">Custom Strategies (comma-separated)</label>
+          <input type="text" class="form-input" id="settingsStrategies" value="Breakout,Pullback,Reversal,Scalp,Swing" />
+        </div>
+        <button class="btn-primary" onclick="saveSettings()">Save Tags</button>
+      </div>
+      <div class="settings-card danger-card">
+        <h3 class="settings-section-title">Danger Zone</h3>
+        <p class="danger-text">Permanently delete all trades from selected account.</p>
+        <button class="btn-danger" onclick="clearAllTrades()">Clear All Trades</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ============================================================
+     MODALS
+============================================================ -->
+
+<!-- ADD TRADE MODAL -->
+<div class="modal-overlay" id="addTradeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="tradeModalTitle">Add Trade</h2>
+      <button class="modal-close" data-modal="addTradeModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="tradeEditId" />
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date & Time *</label>
+          <input type="datetime-local" class="form-input" id="tradeDate" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Pair *</label>
+          <input type="text" class="form-input" id="tradePair" placeholder="EURUSD" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Direction *</label>
+          <select class="form-input" id="tradeDirection">
+            <option value="BUY">BUY</option>
+            <option value="SELL">SELL</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lots</label>
+          <input type="number" class="form-input" id="tradeLots" step="0.01" placeholder="0.10" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Entry *</label>
+          <input type="number" class="form-input" id="tradeEntry" step="0.00001" placeholder="1.08500" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Exit</label>
+          <input type="number" class="form-input" id="tradeExit" step="0.00001" placeholder="1.09000" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Stop Loss</label>
+          <input type="number" class="form-input" id="tradeSL" step="0.00001" placeholder="1.08200" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Take Profit</label>
+          <input type="number" class="form-input" id="tradeTP" step="0.00001" placeholder="1.09500" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">PnL ($)</label>
+          <input type="number" class="form-input" id="tradePnl" step="0.01" placeholder="120.00" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Strategy</label>
+          <select class="form-input" id="tradeStrategy">
+            <option value="Breakout">Breakout</option>
+            <option value="Pullback">Pullback</option>
+            <option value="Reversal">Reversal</option>
+            <option value="Scalp">Scalp</option>
+            <option value="Swing">Swing</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Emotion</label>
+          <select class="form-input" id="tradeEmotion">
+            <option value="Calm">😌 Calm</option>
+            <option value="Fear">😨 Fear</option>
+            <option value="Revenge">😤 Revenge</option>
+            <option value="FOMO">😰 FOMO</option>
+            <option value="Hesitation">😶 Hesitation</option>
+            <option value="Overconfidence">😎 Overconfidence</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Session</label>
+          <select class="form-input" id="tradeSession">
+            <option value="London">London</option>
+            <option value="New York">New York</option>
+            <option value="Tokyo">Tokyo</option>
+            <option value="Sydney">Sydney</option>
+            <option value="Overlap">Overlap</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group full-width">
+        <label class="form-label">Notes</label>
+        <textarea class="form-input form-textarea" id="tradeNotes" placeholder="Trade rationale, observations..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-modal="addTradeModal">Cancel</button>
+      <button class="btn-primary" id="saveTradeBtn">Save Trade</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ACCOUNT MODAL -->
+<div class="modal-overlay" id="addAccountModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 class="modal-title">New Account</h2>
+      <button class="modal-close" data-modal="addAccountModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Account Name *</label>
+        <input type="text" class="form-input" id="accName" placeholder="Live Account 1" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Broker</label>
+        <input type="text" class="form-input" id="accBroker" placeholder="ICMarkets, FTMO..." />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Starting Balance ($) *</label>
+        <input type="number" class="form-input" id="accBalance" placeholder="10000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Account Type</label>
+        <select class="form-input" id="accType">
+          <option value="Live">Live</option>
+          <option value="Demo">Demo</option>
+          <option value="Prop">Prop Firm</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Currency</label>
+        <select class="form-input" id="accCurrency">
+          <option value="USD">USD</option>
+          <option value="EUR">EUR</option>
+          <option value="GBP">GBP</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-modal="addAccountModal">Cancel</button>
+      <button class="btn-primary" id="saveAccountBtn">Create Account</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h2 class="modal-title">Confirm Delete</h2>
+      <button class="modal-close" data-modal="confirmModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-text" id="confirmText">Are you sure?</p>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" data-modal="confirmModal">Cancel</button>
+      <button class="btn-danger" id="confirmDeleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-spinner"></div>
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
